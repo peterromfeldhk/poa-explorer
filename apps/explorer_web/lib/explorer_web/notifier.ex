@@ -37,7 +37,8 @@ defmodule ExplorerWeb.Notifier do
         necessity_by_association: %{
           block: :required,
           from_address: :optional,
-          to_address: :optional
+          to_address: :optional,
+          token_transfers: :optional
         }
       )
 
