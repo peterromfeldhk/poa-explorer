@@ -1359,6 +1359,12 @@ defmodule Explorer.ChainTest do
       assert {:ok, %{}} == Chain.import_blocks([])
     end
 
+    test "publishes data to subscribers on insert" do
+      Chain.subscribe_to_events(:logs)
+      Chain.import_blocks(@import_data)
+      assert_received {:chain_event, :logs, [%Log{}]}
+    end
+
     test "with invalid data" do
       invalid_transaction =
         @import_data

@@ -859,6 +859,20 @@ defmodule Explorer.Chain do
     end
   end
 
+  def broadcast_events(data) do
+    for {event_type, event_data} <- data, event_type in ~w(blocks logs token_transfers)a do
+      broadcast_event_data(event_type, event_data)
+    end
+  end
+
+  defp broadcast_event_data(event_type, event_data) do
+    Registry.dispatch(Registry.ChainEvents, event_type, fn entries ->
+      for {pid, _registered_val} <- entries do
+        send(pid, {:chain_event, event_type, event_data})
+      end
+    end)
+  end
+
   @doc """
   Bulk insert internal transactions for a list of transactions.
 
