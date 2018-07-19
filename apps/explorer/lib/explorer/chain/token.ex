@@ -46,7 +46,7 @@ defmodule Explorer.Chain.Token do
   def changeset(%Token{} = token, params \\ %{}) do
     token
     |> cast(params, ~w(name symbol total_supply decimals contract_address_hash)a)
-    |> validate_required(~w(contract_address_hash))
+    |> validate_required(~w(contract_address_hash)a)
     |> foreign_key_constraint(:contract_address)
     |> unique_constraint(:contract_address_hash)
   end

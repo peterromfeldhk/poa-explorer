@@ -26,6 +26,7 @@ defmodule Explorer.Chain do
     Hash,
     InternalTransaction,
     Log,
+    TokenTransfer,
     Transaction,
     Wei,
     SmartContract
@@ -72,6 +73,7 @@ defmodule Explorer.Chain do
   @typep internal_transactions_option :: {:internal_transactions, [params_option | timeout_option]}
   @typep logs_option :: {:logs, [params_option | timeout_option]}
   @typep receipts_option :: {:receipts, [params_option | timeout_option]}
+  @typep token_transfers_option :: {:token_transfers, [on_conflict_option | params_option | timeout_option]}
   @typep transactions_option :: {:transactions, [on_conflict_option | params_option | timeout_option]}
 
   @doc """
@@ -217,6 +219,7 @@ defmodule Explorer.Chain do
   @insert_blocks_timeout 60_000
   @insert_internal_transactions_timeout 60_000
   @insert_logs_timeout 60_000
+  @insert_token_transfers_timeout 60_000
   @insert_transactions_timeout 60_000
   @update_transactions_timeout 60_000
 
@@ -759,6 +762,7 @@ defmodule Explorer.Chain do
   | `:blocks`                | `[Explorer.Chain.Block.t()]`                                               | List of `t:Explorer.Chain.Block.t/0`s                                                         |
   | `:internal_transactions` | `[%{index: non_neg_integer(), transaction_hash: Explorer.Chain.Hash.t()}]` | List of maps of the `t:Explorer.Chain.InternalTransaction.t/0` `index` and `transaction_hash` |
   | `:logs`                  | `[Explorer.Chain.Log.t()]`                                                 | List of `t:Explorer.Chain.Log.t/0`s                                                           |
+  | `:token_transfers`       | `[Explorer.Chain.TokenTransfer.t()]`                                       | List of `t:Explor.Chain.TokenTransfer.t/0`s                                                  |
   | `:transactions`          | `[Explorer.Chain.Hash.t()]`                                                | List of `t:Explorer.Chain.Transaction.t/0` `hash`                                             |
 
   A completely empty tree can be imported, but options must still be supplied.  It is a non-zero amount of time to
@@ -773,7 +777,7 @@ defmodule Explorer.Chain do
   are errors, they are returned in `Ecto.Changeset.t`s, so that the original, invalid value can be reconstructed for any
   error messages.
 
-   Because there are multiple processes potentially writing to the same tables at the same time,
+  Because there are multiple processes potentially writing to the same tables at the same time,
   `c:Ecto.Repo.insert_all/2`'s
   [`:conflict_target` and `:on_conflict` options](https://hexdocs.pm/ecto/Ecto.Repo.html#c:insert_all/3-options) are
   used to perform [upserts](https://hexdocs.pm/ecto/Ecto.Repo.html#c:insert_all/3-upserts) on all tables, so that
@@ -827,6 +831,7 @@ defmodule Explorer.Chain do
           | logs_option
           | receipts_option
           | timeout_option
+          | token_transfers_option
           | transactions_option
         ]) ::
           {:ok,
@@ -1933,6 +1938,7 @@ defmodule Explorer.Chain do
     |> run_transactions(ecto_schema_module_to_changes_list, full_options)
     |> run_internal_transactions(ecto_schema_module_to_changes_list, full_options)
     |> run_logs(ecto_schema_module_to_changes_list, full_options)
+    |> run_token_transfers(ecto_schema_module_to_changes_list, full_options)
   end
 
   defp ecto_schema_module_to_params_list_to_ecto_schema_module_to_changes_list(ecto_schema_module_to_params_list) do
@@ -2051,6 +2057,7 @@ defmodule Explorer.Chain do
     blocks: Block,
     internal_transactions: InternalTransaction,
     logs: Log,
+    token_transfers: TokenTransfer,
     transactions: Transaction
   }
 
@@ -2149,6 +2156,33 @@ defmodule Explorer.Chain do
         timeout: timeout,
         timestamps: timestamps
       )
+
+    {:ok, logs}
+  end
+
+  @spec insert_token_transfers([map()], [timeout_option | timestamps_option]) ::
+          {:ok, [TokenTransfer.t()]}
+          | {:error, [Changeset.t()]}
+  def insert_token_transfers(changes_list, named_arguments)
+      when is_list(changes_list) and is_list(named_arguments) do
+    timestamps = Keyword.fetch!(named_arguments, :timestamps)
+    timeout = Keyword.fetch!(named_arguments, :timeout)
+
+    # order so that row ShareLocks are grabbed in a consistent order
+    ordered_changes_list = Enum.sort_by(changes_list, &{&1.transaction_hash, &1.log_index})
+
+    {:ok, token_transfers} =
+      insert_changes_list(
+        ordered_changes_list,
+        conflict_target: [:transaction_hash, :log_index],
+        on_conflict: :replace_all,
+        for: TokenTransfer,
+        returning: true,
+        timeout: timeout,
+        timestamps: timestamps
+      )
+
+    {:ok, token_transfers}
   end
 
   defp insert_changes_list(changes_list, options) when is_list(changes_list) do
@@ -2359,6 +2393,25 @@ defmodule Explorer.Chain do
           insert_logs(
             logs_changes,
             timeout: options[:logs][:timeout] || @insert_logs_timeout,
+            timestamps: timestamps
+          )
+        end)
+
+      _ ->
+        multi
+    end
+  end
+
+  defp run_token_transfers(multi, ecto_schema_module_to_changes_list, options)
+       when is_map(ecto_schema_module_to_changes_list) and is_list(options) do
+    case ecto_schema_module_to_changes_list do
+      %{TokenTransfer => token_transfers_changes} ->
+        timestamps = Keyword.fetch!(options, :timestamps)
+
+        Multi.run(multi, :token_transfers, fn _ ->
+          insert_token_transfers(
+            token_transfers_changes,
+            timeout: options[:token_transfers][:timeout] || @insert_token_transfers_timeout,
             timestamps: timestamps
           )
         end)
