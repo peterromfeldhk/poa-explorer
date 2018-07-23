@@ -5,7 +5,11 @@ defmodule ExplorerWeb.HomePage do
 
   import Wallaby.Query, only: [css: 1, css: 2]
 
-  alias Explorer.Chain.{InternalTransaction, Transaction}
+  alias Explorer.Chain.{Block, InternalTransaction, Transaction}
+
+  def block(%Block{number: number}) do
+    css("[data-test='chain_block'][data-block-number='#{number}']")
+  end
 
   def blocks(count: count) do
     css("[data-test='chain_block']", count: count)
