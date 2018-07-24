@@ -35,7 +35,8 @@ defmodule ExplorerWeb.Notifier do
       Chain.hash_to_transaction(
         transaction_hash,
         necessity_by_association: %{
-          block: :required,
+          # optional to allow for pending transactions
+          block: :optional,
           from_address: :optional,
           to_address: :optional
         }
