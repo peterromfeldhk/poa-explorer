@@ -35,8 +35,10 @@ defmodule ExplorerWeb.ViewingBlocksTest do
 
     Notifier.handle_event({:chain_event, :blocks, [block]})
 
-    assert_has(session, HomePage.block(block))
-    refute_has(session, HomePage.block(last_shown_block))
+    session
+    |> assert_has(HomePage.blocks(count: 4))
+    |> assert_has(HomePage.block(block))
+    |> refute_has(HomePage.block(last_shown_block))
   end
 
   test "search for blocks from home page", %{session: session} do

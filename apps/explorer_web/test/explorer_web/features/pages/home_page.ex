@@ -8,11 +8,11 @@ defmodule ExplorerWeb.HomePage do
   alias Explorer.Chain.{Block, InternalTransaction, Transaction}
 
   def block(%Block{number: number}) do
-    css("[data-test='chain_block'][data-block-number='#{number}']")
+    css("[data-selector='chain-block'][data-block-number='#{number}']")
   end
 
   def blocks(count: count) do
-    css("[data-test='chain_block']", count: count)
+    css("[data-selector='chain-block']", count: count)
   end
 
   def contract_creation(%InternalTransaction{created_contract_address_hash: hash}) do
