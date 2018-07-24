@@ -307,6 +307,7 @@ msgstr ""
 #: lib/explorer_web/templates/address_transaction/index.html.eex:20
 #: lib/explorer_web/templates/address_transaction/index.html.eex:60
 #: lib/explorer_web/templates/transaction_internal_transaction/index.html.eex:11
+#: lib/explorer_web/templates/transaction_internal_transaction/index.html.eex:29
 #: lib/explorer_web/templates/transaction_internal_transaction/index.html.eex:32
 #: lib/explorer_web/templates/transaction_internal_transaction/index.html.eex:47
 #: lib/explorer_web/templates/transaction_log/index.html.eex:10
